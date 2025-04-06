@@ -1,8 +1,8 @@
-﻿using RainCrab.Plugins.Base;
-
-namespace RainCrab.Plugins.AspNet;
+﻿namespace RainCrab.Plugins.AspNet;
 
 public interface IWebPlugin
 {
-    public Manifest Manifest { get; }
+    Manifest Manifest { get; }
+    Task PreConfigureAsync(WebPluginLoaderContext loaderContext);
+    Task ConfigureAsync(WebPluginLoaderContext loaderContext);
 }

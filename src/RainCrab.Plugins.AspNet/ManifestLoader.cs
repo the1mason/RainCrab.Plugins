@@ -38,7 +38,7 @@ internal class ManifestLoader(
             await using var stream = File.OpenRead(path);
             return await JsonSerializer.DeserializeAsync<Manifest>(stream, jsonSerializerOptions);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
             logger.LogCritical("Failed to deserialize manifest for {path}", path);
             throw;

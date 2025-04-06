@@ -6,12 +6,15 @@ using RainCrab.Plugins.Base;
 
 namespace RainCrab.Plugins.AspNet;
 
-public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonSerializerOptions, ILogger logger) : IPluginLoader<IWebPlugin>
+public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonSerializerOptions, ILogger logger, bool unloadable) : IPluginLoader<IWebPlugin>, IUnloadablePluginLoader
 {
+    public bool Unloadable => unloadable;
+
     private readonly List<IWebPlugin> _plugins = [];
-    private List<Manifest> _manifests = [];
+
+    private readonly List<(string manifestId, PluginAssemblyLoadContext context)> _loadedContexts = [];
     
-    public async Task<IPluginLoadContext<IWebPlugin>> Load(string basePath)
+    public async Task<IPluginLoadContext<IWebPlugin>> LoadAsync()
     {
         var manifestLoader = new ManifestLoader(basePath, jsonSerializerOptions, logger);
         var manifestLoadResults = await manifestLoader.LoadManifestsAsync();
@@ -23,21 +26,46 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
         {
             try
             {
-                var plugin = LoadPlugin(manifestLoadResult);
+                var (plugin, pluginAssemblyLoadContext) = LoadPlugin(manifestLoadResult);
+                _loadedContexts.Add((manifestLoadResult.Manifest.Id, pluginAssemblyLoadContext));
                 _plugins.Add(plugin);
-                _manifests.Add(manifestLoadResult.Manifest);
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Failed to load {PluginName}{Version}: {Message}", manifestLoadResult.Manifest.Id,manifestLoadResult.Manifest.Version, e.Message);
-                _manifests.Remove(manifestLoadResult.Manifest);
             }
         }
         
         return new WebPluginLoaderContext(_plugins);
     }
 
-    private static IWebPlugin LoadPlugin(ManifestLoadResult manifestLoadResult)
+    public PluginUnloadResult TryUnload()
+    {
+        if(!Unloadable)
+            throw new InvalidOperationException("This plugin loader is not unloadable!");
+
+        List<WeakReference> assemblies = [];
+        foreach (var idContextTuple in _loadedContexts)
+        {
+            assemblies.AddRange(idContextTuple.context.Assemblies.Select(x => new WeakReference(x)));
+            idContextTuple.context.Unload();
+        }
+
+        List<PluginUnloadError> errors = [];
+        
+        foreach (var assembly in assemblies)
+        {
+            if (TryWaitUntilUnloaded(assembly))
+                continue;
+            
+            errors.Add(new PluginUnloadError("Unknown", "Failed to unload assembly"));
+            logger.LogWarning("Failed to unload plugin context!");
+        }
+
+        return new PluginUnloadResult(errors.Count > 0, errors);
+    }
+    
+    private static (IWebPlugin, PluginAssemblyLoadContext) LoadPlugin(ManifestLoadResult manifestLoadResult)
     {
         var path = Directory.GetParent(manifestLoadResult.Location) + "/" + manifestLoadResult.Manifest.Assembly;
 
@@ -55,7 +83,7 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
         if (plugin is null)
             throw new ApplicationException("Failed to create plugin instance.");
         
-        return plugin;
+        return (plugin, loadContext);
     }
     
     private static IWebPlugin? CreatePlugin(Assembly assembly)
@@ -69,5 +97,18 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
                 $"Found more than 1 type, implementing IPlugin in assembly {assembly.FullName}"),
             _ => Activator.CreateInstance(types.First()) as IWebPlugin
         };
+    }
+
+    static bool TryWaitUntilUnloaded(WeakReference reference)
+    {
+        const int infiniteLoopGuard = 10;
+
+        for (var i = 0; reference.IsAlive && i < infiniteLoopGuard; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        return !reference.IsAlive;
     }
 }
