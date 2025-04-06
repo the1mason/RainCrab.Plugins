@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>RainCrab.Plugins.AspNet</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>the1mason</Authors>
+    <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageTags>AspNet Plugins PluginSystem PluginLoader</PackageTags>
+    <Description>
+      A library that provides dynamic plugin loading to ASPNET apps
+    </Description>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App">
+    </FrameworkReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="readme.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RainCrab.Plugins.Base\RainCrab.Plugins.Base.csproj" />
+  </ItemGroup>
+
+</Project>
