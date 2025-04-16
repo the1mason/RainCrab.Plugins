@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RainCrab.Plugins.Base;
@@ -14,13 +13,13 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
 
     private readonly List<(string manifestId, PluginAssemblyLoadContext context)> _loadedContexts = [];
     
-    public async Task<IPluginLoadContext<IWebPlugin>> LoadAsync()
+    public async Task<IReadOnlyList<IWebPlugin>> LoadAsync()
     {
         var manifestLoader = new ManifestLoader(basePath, jsonSerializerOptions, logger);
         var manifestLoadResults = await manifestLoader.LoadManifestsAsync();
 
         if (manifestLoadResults.Count == 0)
-            return new WebPluginLoaderContext([]);
+            return [];
 
         foreach (var manifestLoadResult in manifestLoadResults)
         {
@@ -36,7 +35,7 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
             }
         }
         
-        return new WebPluginLoaderContext(_plugins);
+        return _plugins;
     }
 
     public PluginUnloadResult TryUnload()
@@ -99,7 +98,7 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
         };
     }
 
-    static bool TryWaitUntilUnloaded(WeakReference reference)
+    private static bool TryWaitUntilUnloaded(WeakReference reference)
     {
         const int infiniteLoopGuard = 10;
 

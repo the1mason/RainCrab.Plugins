@@ -2,5 +2,5 @@
 
 public interface IPluginLoader<TPlugin>
 {
-    Task<IPluginLoadContext<TPlugin>> LoadAsync();
+    Task<IReadOnlyList<TPlugin>> LoadAsync();
 }

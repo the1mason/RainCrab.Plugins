@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>RainCrab.Plugins.AspNet</PackageId>
-    <Version>1.0.0</Version>
+    <Version>0.1.1</Version>
     <Authors>the1mason</Authors>
     <LangVersion>latest</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,6 +14,7 @@
       A library that provides dynamic plugin loading to ASPNET apps
     </Description>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +28,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RainCrab.Plugins.Base\RainCrab.Plugins.Base.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
   </ItemGroup>
 
 </Project>
