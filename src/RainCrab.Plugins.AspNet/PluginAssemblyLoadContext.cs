@@ -3,11 +3,11 @@ using System.Runtime.Loader;
 
 namespace RainCrab.Plugins.AspNet;
 
-public class PluginAssemblyLoadContext : AssemblyLoadContext
+internal class PluginAssemblyLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver _resolver;
 
-    public PluginAssemblyLoadContext(string pluginPath, bool isUnloadable = false) : base(isUnloadable)
+    internal PluginAssemblyLoadContext(string pluginPath, bool isUnloadable = false) : base(isUnloadable)
     {
         _resolver = new AssemblyDependencyResolver(pluginPath);
     }

@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>RainCrab.Plugins.AspNet</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.1.11</Version>
     <Authors>the1mason</Authors>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>preview</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>AspNet Plugins PluginSystem PluginLoader</PackageTags>
     <Description>
@@ -27,10 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RainCrab.Plugins.Base\RainCrab.Plugins.Base.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="RainCrab.Plugins.Base" Version="0.1.7" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
   </ItemGroup>
 

@@ -5,14 +5,19 @@ using RainCrab.Plugins.Base;
 
 namespace RainCrab.Plugins.AspNet;
 
-public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonSerializerOptions, ILogger logger, bool unloadable) : IPluginLoader<IWebPlugin>, IUnloadablePluginLoader
+
+public sealed class WebPluginLoader(
+    string basePath,
+    JsonSerializerOptions jsonSerializerOptions,
+    ILogger logger,
+    bool unloadable)
 {
     public bool Unloadable => unloadable;
 
-    private readonly List<IWebPlugin> _plugins = [];
+    private readonly List<(Manifest manifest, IWebPlugin plugin)> _manifestPlugins = [];
 
     private readonly List<(string manifestId, PluginAssemblyLoadContext context)> _loadedContexts = [];
-    
+
     public async Task<IReadOnlyList<IWebPlugin>> LoadAsync()
     {
         var manifestLoader = new ManifestLoader(basePath, jsonSerializerOptions, logger);
@@ -27,20 +32,21 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
             {
                 var (plugin, pluginAssemblyLoadContext) = LoadPlugin(manifestLoadResult);
                 _loadedContexts.Add((manifestLoadResult.Manifest.Id, pluginAssemblyLoadContext));
-                _plugins.Add(plugin);
+                _manifestPlugins.Add((manifestLoadResult.Manifest, plugin));
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Failed to load {PluginName}{Version}: {Message}", manifestLoadResult.Manifest.Id,manifestLoadResult.Manifest.Version, e.Message);
+                logger.LogError(e, "Failed to load {PluginName}{Version}: {Message}", manifestLoadResult.Manifest.Id,
+                    manifestLoadResult.Manifest.Version, e.Message);
             }
         }
-        
-        return _plugins;
+
+        return _manifestPlugins.OrderByDescending(x => x.manifest.Priority).Select(x => x.plugin).ToArray();
     }
 
     public PluginUnloadResult TryUnload()
     {
-        if(!Unloadable)
+        if (!Unloadable)
             throw new InvalidOperationException("This plugin loader is not unloadable!");
 
         List<WeakReference> assemblies = [];
@@ -51,19 +57,19 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
         }
 
         List<PluginUnloadError> errors = [];
-        
+
         foreach (var assembly in assemblies)
         {
             if (TryWaitUntilUnloaded(assembly))
                 continue;
-            
+
             errors.Add(new PluginUnloadError("Unknown", "Failed to unload assembly"));
             logger.LogWarning("Failed to unload plugin context!");
         }
 
         return new PluginUnloadResult(errors.Count > 0, errors);
     }
-    
+
     private static (IWebPlugin, PluginAssemblyLoadContext) LoadPlugin(ManifestLoadResult manifestLoadResult)
     {
         var path = Directory.GetParent(manifestLoadResult.Location) + "/" + manifestLoadResult.Manifest.Assembly;
@@ -81,21 +87,21 @@ public sealed class WebPluginLoader(string basePath, JsonSerializerOptions jsonS
 
         if (plugin is null)
             throw new ApplicationException("Failed to create plugin instance.");
-        
+
         return (plugin, loadContext);
     }
-    
+
     private static IWebPlugin? CreatePlugin(Assembly assembly)
     {
         var types = assembly.GetTypes().Where(t => typeof(IWebPlugin).IsAssignableFrom(t)).ToArray();
-        return types.Length switch
+
+        if (types.Length != 1)
         {
-            > 1 => throw new ApplicationException(
-                $"Found more than 1 type, implementing IPlugin in assembly {assembly.FullName}"),
-            < 1 => throw new ApplicationException(
-                $"Found more than 1 type, implementing IPlugin in assembly {assembly.FullName}"),
-            _ => Activator.CreateInstance(types.First()) as IWebPlugin
-        };
+            throw new ApplicationException("There should be exactly 1 member implementing IWebPlugin");
+        }
+        
+        IWebPlugin? result = Activator.CreateInstance(types[0]) as IWebPlugin;
+        return result;
     }
 
     private static bool TryWaitUntilUnloaded(WeakReference reference)
