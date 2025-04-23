@@ -1,24 +1,22 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using RainCrab.Plugins.Base;
 
-namespace RainCrab.Plugins.AspNet;
+namespace RainCrab.Plugins.Base;
 
-
-public sealed class WebPluginLoader(
+public class PluginLoader<TPlugin>(
     string basePath,
     JsonSerializerOptions jsonSerializerOptions,
     ILogger logger,
-    bool unloadable)
+    bool unloadable) : IPluginLoader<TPlugin>, IUnloadablePluginLoader
 {
-    public bool Unloadable => unloadable;
-
-    private readonly List<(Manifest manifest, IWebPlugin plugin)> _manifestPlugins = [];
+    private readonly List<(Manifest manifest, TPlugin plugin)> _manifestPlugins = [];
 
     private readonly List<(string manifestId, PluginAssemblyLoadContext context)> _loadedContexts = [];
 
-    public async Task<IReadOnlyList<IWebPlugin>> LoadAsync()
+    public bool Unloadable => unloadable;
+    
+    public async Task<IReadOnlyList<TPlugin>> LoadAsync()
     {
         var manifestLoader = new ManifestLoader(basePath, jsonSerializerOptions, logger);
         var manifestLoadResults = await manifestLoader.LoadManifestsAsync();
@@ -44,9 +42,10 @@ public sealed class WebPluginLoader(
         return _manifestPlugins.OrderByDescending(x => x.manifest.Priority).Select(x => x.plugin).ToArray();
     }
 
+
     public PluginUnloadResult TryUnload()
     {
-        if (!Unloadable)
+        if (!unloadable)
             throw new InvalidOperationException("This plugin loader is not unloadable!");
 
         List<WeakReference> assemblies = [];
@@ -70,9 +69,9 @@ public sealed class WebPluginLoader(
         return new PluginUnloadResult(errors.Count > 0, errors);
     }
 
-    private static (IWebPlugin, PluginAssemblyLoadContext) LoadPlugin(ManifestLoadResult manifestLoadResult)
+    private static (TPlugin, PluginAssemblyLoadContext) LoadPlugin(ManifestLoadResult manifestLoadResult)
     {
-        var path = Directory.GetParent(manifestLoadResult.Location) + "/" + manifestLoadResult.Manifest.Assembly;
+        var path = Path.Combine(Directory.GetParent(manifestLoadResult.Location)!.FullName, manifestLoadResult.Manifest.Assembly);
 
         if (!File.Exists(path))
         {
@@ -91,16 +90,16 @@ public sealed class WebPluginLoader(
         return (plugin, loadContext);
     }
 
-    private static IWebPlugin? CreatePlugin(Assembly assembly)
+    private static TPlugin? CreatePlugin(Assembly assembly)
     {
-        var types = assembly.GetTypes().Where(t => typeof(IWebPlugin).IsAssignableFrom(t)).ToArray();
+        var types = assembly.GetTypes().Where(t => typeof(TPlugin).IsAssignableFrom(t)).ToArray();
 
         if (types.Length != 1)
         {
-            throw new ApplicationException("There should be exactly 1 member implementing IWebPlugin");
+            throw new ApplicationException("There should be exactly 1 member implementing TPlugin");
         }
-        
-        IWebPlugin? result = Activator.CreateInstance(types[0]) as IWebPlugin;
+
+        TPlugin? result = (TPlugin?)Activator.CreateInstance(types[0]);
         return result;
     }
 

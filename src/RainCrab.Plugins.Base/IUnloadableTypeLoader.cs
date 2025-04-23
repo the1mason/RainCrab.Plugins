@@ -1,6 +1,6 @@
 ﻿namespace RainCrab.Plugins.Base;
 
-public interface IUnloadablePluginLoader
+public interface IUnloadableTypeLoader
 {
     bool Unloadable { get; }
     PluginUnloadResult TryUnload();

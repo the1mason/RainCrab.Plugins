@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
 
-namespace RainCrab.Plugins.AspNet;
+namespace RainCrab.Plugins.Base;
 
 internal class PluginAssemblyLoadContext : AssemblyLoadContext
 {

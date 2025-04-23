@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>RainCrab.Plugins.AspNet</PackageId>
-    <Version>0.1.11</Version>
+    <Version>0.2.0</Version>
     <Authors>the1mason</Authors>
     <LangVersion>preview</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RainCrab.Plugins.Base" Version="0.1.7" />
+    <PackageReference Include="RainCrab.Plugins.Base" Version="0.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
   </ItemGroup>
 

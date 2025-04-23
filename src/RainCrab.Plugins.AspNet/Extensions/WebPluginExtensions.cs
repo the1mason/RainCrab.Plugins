@@ -12,10 +12,10 @@ public static class WebPluginExtensions
     public static async Task<WebPluginLoadContext> AddWebPlugins(this WebApplicationBuilder appBuilder, ILogger logger, string? path = null, JsonSerializerOptions? jsonOptions = null)
     {
         jsonOptions ??= JsonSerializerOptions.Default;
-        var loader = new WebPluginLoader(path ?? AppContext.BaseDirectory, jsonOptions, logger, unloadable:false);
+        var loader = new TypeLoader<IWebPlugin>(path ?? AppContext.BaseDirectory, jsonOptions, logger, unloadable:false);
         var plugins = await loader.LoadAsync();
         appBuilder.Services.AddSingleton(plugins);
-        var loadContext = new WebPluginLoadContext()
+        var loadContext = new WebPluginLoadContext
         {
             ApplicationBuilder = appBuilder,
             LoadedPlugins = plugins
